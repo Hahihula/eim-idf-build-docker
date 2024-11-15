@@ -28,6 +28,15 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           platforms: linux/amd64,linux/arm64
+          # Configure builder to use more memory
+          config-inline: |
+            [worker.oci]
+              max-parallelism = 1
+              gc = true
+              [worker.containerd]
+                gc = true
+              [registry."docker.io"]
+                mirrors = ["mirror.gcr.io"]
 
       - name: Login to DockerHub
         uses: docker/login-action@v3
@@ -35,14 +44,36 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: Build and push amd64 image
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
-            ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_IMAGE_TAG }}
-            ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
-          cache-from: type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:buildcache,mode=max
+            ${{ env.DOCKER_IMAGE_NAME }}:amd64-${{ env.DOCKER_IMAGE_TAG }}
+          cache-from: type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:buildcache-amd64
+          cache-to: type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:buildcache-amd64,mode=max
+
+      - name: Build and push arm64 image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.DOCKER_IMAGE_NAME }}:arm64-${{ env.DOCKER_IMAGE_TAG }}
+          cache-from: type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:buildcache-arm64
+          cache-to: type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:buildcache-arm64,mode=max
+
+      # Create and push the multi-arch manifest
+      - name: Create and push manifest
+        if: github.event_name != 'pull_request'
+        run: |
+          docker buildx imagetools create -t ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_IMAGE_TAG }} \
+            ${{ env.DOCKER_IMAGE_NAME }}:amd64-${{ env.DOCKER_IMAGE_TAG }} \
+            ${{ env.DOCKER_IMAGE_NAME }}:arm64-${{ env.DOCKER_IMAGE_TAG }}
+
+          docker buildx imagetools create -t ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} \
+            ${{ env.DOCKER_IMAGE_NAME }}:amd64-${{ env.DOCKER_IMAGE_TAG }} \
+            ${{ env.DOCKER_IMAGE_NAME }}:arm64-${{ env.DOCKER_IMAGE_TAG }}
