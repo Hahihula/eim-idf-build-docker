@@ -8,11 +8,16 @@ RUN install_packages git cmake ninja-build wget flex bison gperf ccache libffi-d
 
 # Download appropriate binary based on architecture
 ARG TARGETARCH
-RUN case "${TARGETARCH}" in \
-        amd64) EIM_BINARY="eim-v0.1.5-linux-x64.zip" ;; \
-        arm64) EIM_BINARY="eim-v0.1.5-linux-arm64.zip" ;; \
-        *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
-    esac && \
+RUN set -x && \
+    EIM_BINARY="eim-v0.1.5-linux-" && \
+    if [ "$TARGETARCH" = "amd64" ]; then \
+        EIM_BINARY="${EIM_BINARY}x64.zip"; \
+    elif [ "$TARGETARCH" = "arm64" ]; then \
+        EIM_BINARY="${EIM_BINARY}arm64.zip"; \
+    else \
+        echo "Unsupported architecture: ${TARGETARCH}" && exit 1; \
+    fi && \
+    echo "Downloading ${EIM_BINARY}" && \
     wget "https://github.com/espressif/idf-im-cli/releases/download/v0.1.5/${EIM_BINARY}" -O /tmp/eim.zip && \
     unzip /tmp/eim.zip -d /usr/local/bin && \
     chmod +x /usr/local/bin/eim && \
