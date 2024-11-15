@@ -1,7 +1,5 @@
 # syntax=docker/dockerfile:1
 
-ARG TARGETARCH
-
 FROM bitnami/minideb:bookworm
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
