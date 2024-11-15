@@ -1,6 +1,6 @@
 # EIM IDF Build Docker
 
-This repository contains a proof of concept for non-interactive installation of [ESP-IDF Managed Installation (EIM)](https://github.com/espressif/idf-installer) using Docker. The Docker image provides a ready-to-use environment for building ESP-IDF projects without manual setup.
+This repository contains a proof of concept for non-interactive installation of [ESP-IDF Managed Installation (EIM)](https://github.com/espressif/idf-im-cli) using Docker. The Docker image provides a ready-to-use environment for building ESP-IDF projects without manual setup.
 
 ## Features
 
@@ -89,5 +89,5 @@ Feel free to submit issues and enhancement requests!
 ## Related Links
 
 - [ESP-IDF GitHub Repository](https://github.com/espressif/esp-idf)
-- [EIM GitHub Repository](https://github.com/espressif/idf-installer)
+- [EIM GitHub Repository](https://github.com/espressif/idf-im-cli)
 - [Docker Hub Image](https://hub.docker.com/r/hahihula/eim-idf-build)
