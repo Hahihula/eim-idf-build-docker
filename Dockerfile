@@ -6,12 +6,13 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN install_packages git cmake ninja-build wget flex bison gperf ccache \
     libffi-dev libssl-dev dfu-util libusb-1.0-0 python3 python3-pip \
-    python3-setuptools python3-wheel xz-utils unzip python3-venv && \
+    python3-setuptools python3-wheel xz-utils unzip python3-venv curl jq && \
     rm -rf /var/lib/apt/lists/*
 
 ARG TARGETARCH
 RUN set -x && \
-    EIM_BINARY="eim-v0.1.6-linux-" && \
+    LATEST_VERSION=$(curl -s https://dl.espressif.com/dl/eim/eim_cli_release.json | jq -r '.version') && \
+    EIM_BINARY="eim-v${LATEST_VERSION}-linux-" && \
     if [ "$TARGETARCH" = "amd64" ]; then \
         EIM_BINARY="${EIM_BINARY}x64.zip"; \
     elif [ "$TARGETARCH" = "arm64" ]; then \
@@ -20,7 +21,7 @@ RUN set -x && \
         echo "Unsupported architecture: ${TARGETARCH}" && exit 1; \
     fi && \
     echo "Downloading ${EIM_BINARY}" && \
-    wget "https://github.com/espressif/idf-im-cli/releases/download/v0.1.6/${EIM_BINARY}" -O /tmp/eim.zip && \
+    wget "https://github.com/espressif/idf-im-cli/releases/download/v${LATEST_VERSION}/${EIM_BINARY}" -O /tmp/eim.zip && \
     unzip /tmp/eim.zip -d /usr/local/bin && \
     chmod +x /usr/local/bin/eim && \
     rm /tmp/eim.zip
