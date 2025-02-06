@@ -9,10 +9,9 @@ RUN install_packages git cmake ninja-build wget flex bison gperf ccache \
     python3-setuptools python3-wheel xz-utils unzip python3-venv && \
     rm -rf /var/lib/apt/lists/*
 
-# Download appropriate binary based on architecture
 ARG TARGETARCH
 RUN set -x && \
-    EIM_BINARY="eim-v0.1.5-linux-" && \
+    EIM_BINARY="eim-v0.1.6-linux-" && \
     if [ "$TARGETARCH" = "amd64" ]; then \
         EIM_BINARY="${EIM_BINARY}x64.zip"; \
     elif [ "$TARGETARCH" = "arm64" ]; then \
@@ -21,7 +20,7 @@ RUN set -x && \
         echo "Unsupported architecture: ${TARGETARCH}" && exit 1; \
     fi && \
     echo "Downloading ${EIM_BINARY}" && \
-    wget "https://github.com/espressif/idf-im-cli/releases/download/v0.1.5/${EIM_BINARY}" -O /tmp/eim.zip && \
+    wget "https://github.com/espressif/idf-im-cli/releases/download/v0.1.6/${EIM_BINARY}" -O /tmp/eim.zip && \
     unzip /tmp/eim.zip -d /usr/local/bin && \
     chmod +x /usr/local/bin/eim && \
     rm /tmp/eim.zip
@@ -31,5 +30,4 @@ RUN eim -r false -n true -vvv
 RUN mkdir /tmp/project
 WORKDIR /tmp/project
 
-# The build command is moved to the entrypoint to ensure it runs on the mounted code
 ENTRYPOINT ["/bin/bash", "-c", "source /root/.espressif/activate_idf_v5.3.1.sh && python3 /root/.espressif/v5.3.1/esp-idf/tools/idf.py build"]
