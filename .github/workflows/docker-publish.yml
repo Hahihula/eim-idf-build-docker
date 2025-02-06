@@ -2,9 +2,9 @@ name: Build and Publish Multi-arch Docker Image
 
 on:
   push:
-    branches: ["main"]
+    branches: ["master"]
   pull_request:
-    branches: ["main"]
+    branches: ["master"]
   workflow_dispatch:
 
 env:
@@ -41,7 +41,7 @@ jobs:
             TARGETARCH=amd64
 
   build-arm64:
-    runs-on: macos-14
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -51,19 +51,22 @@ jobs:
 
       - name: Login to DockerHub
         if: github.event_name != 'pull_request'
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: |
-          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push ARM64 image
-        if: github.event_name != 'pull_request'
-        run: |
-          docker build --platform linux/arm64 \
-            --build-arg TARGETARCH=arm64 \
-            -t ${{ env.DOCKER_IMAGE_NAME }}:arm64-${{ env.DOCKER_IMAGE_TAG }} .
-          docker push ${{ env.DOCKER_IMAGE_NAME }}:arm64-${{ env.DOCKER_IMAGE_TAG }}
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ env.DOCKER_IMAGE_NAME }}:arm64-${{ env.DOCKER_IMAGE_TAG }}
+          cache-from: type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:buildcache-arm64
+          cache-to: type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:buildcache-arm64,mode=max
+          build-args: |
+            TARGETARCH=arm64
 
   create-manifest:
     needs: [build-amd64, build-arm64]
@@ -79,13 +82,12 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Create and push the multi-arch manifest
-      - name: Create and push manifest
-        run: |
-          docker buildx imagetools create -t ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_IMAGE_TAG }} \
-            ${{ env.DOCKER_IMAGE_NAME }}:amd64-${{ env.DOCKER_IMAGE_TAG }} \
-            ${{ env.DOCKER_IMAGE_NAME }}:arm64-${{ env.DOCKER_IMAGE_TAG }}
-
-          docker buildx imagetools create -t ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} \
-            ${{ env.DOCKER_IMAGE_NAME }}:amd64-${{ env.DOCKER_IMAGE_TAG }} \
-            ${{ env.DOCKER_IMAGE_NAME }}:arm64-${{ env.DOCKER_IMAGE_TAG }}
+      - name: Create and push multi-arch manifest
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_IMAGE_TAG }}
+            ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
