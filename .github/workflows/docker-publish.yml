@@ -30,7 +30,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            yourusername/esp-idf-eim  # Replace with your Docker Hub username/image name
+            hahihula/eim-idf-build
           tags: |
             type=ref,event=branch
             type=ref,event=pr
